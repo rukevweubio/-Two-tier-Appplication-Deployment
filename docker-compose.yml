@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: webapp_db
+      MYSQL_USER: webuser
+      MYSQL_PASSWORD: webpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  webapp:
+    build: .
+    container_name: php-webapp
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: webuser
+      MYSQL_PASSWORD: webpass
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:
