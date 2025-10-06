@@ -1,24 +1,4 @@
-# Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev
 
-
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dev-data
-  namespace: dev
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: managed-csi
----
-# MySQL Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
