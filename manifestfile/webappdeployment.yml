@@ -1,7 +1,15 @@
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: webapp
+  namespace: dev
 spec:
   replicas: 2
   selector:
@@ -13,21 +21,25 @@ spec:
         app: webapp
     spec:
       containers:
-      - name: webapp
-        image: yourdockerhubusername/your-frontend-image:latest
-        ports:
-        - containerPort: 80
-        env:
-        - name: MYSQL_HOST
-          value: "mysql"   # matches MySQL service name
-        - name: MYSQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_USER
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_PASSWORD
-
+        - name: webapp
+          image: rukevweubio/two-tier-appplication-deployment-webapp:lastest
+          ports:
+            - containerPort: 80
+          env:
+            - name: DB_HOST
+              value: mysql.dev.svc.cluster.local  
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
