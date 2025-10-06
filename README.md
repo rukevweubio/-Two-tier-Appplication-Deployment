@@ -157,10 +157,13 @@ Assume your front-end is a simple Apache server with custom web content (e.g., H
 1. **Create Dockerfile** for Front-End:
    Create a file named `Dockerfile` in your project directory:
 
-   ```dockerfile
-   FROM httpd:2.4  # Official Apache image
-   COPY ./your-web-content/ /usr/local/apache2/htdocs/  # Copy your web files
-   # If using PHP, use a PHP-enabled Apache image like php:8.2-apache and install extensions as needed
+   ```
+        dockerfile
+        FROM php:8.2-apache
+        WORKDIR /var/www/html
+        COPY . /var/www/html/
+        RUN docker-php-ext-install mysqli
+        EXPOSE 80
    ```
 
 2. **Build the Docker Image**:
@@ -208,7 +211,7 @@ Create a Deployment for the front-end that pulls the image from Docker Hub.
            - containerPort: 80
            env:
            - name: DB_HOST
-             value: "mysql-service"  # Points to MySQL service
+             value: "mysql-service"  
            - name: DB_USER
              value: "root"
            - name: DB_PASSWORD
@@ -228,7 +231,7 @@ Create a Deployment for the front-end that pulls the image from Docker Hub.
        - protocol: TCP
          port: 80
          targetPort: 80
-     type: LoadBalancer  # Exposes externally
+     type: LoadBalancer  
    ```
 
 2. **Apply the YAML**:
@@ -274,7 +277,7 @@ Portainer provides a web UI to manage Kubernetes resources, including deploying 
          - name: portainer
            image: portainer/portainer-ce:latest
            args:
-           - --admin-password=$2y$05$yourhashedpassword  # Generate hash via 'htpasswd -nb -B admin yourpassword'
+          
            ports:
            - containerPort: 9000
            volumeMounts:
