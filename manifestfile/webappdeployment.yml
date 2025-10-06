@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: webapp
-          image: rukevweubio/two-tier-appplication-deployment-webapp:lastest
+          image: rukevweubio/two-tier-appplication-deployment-webapp:latest
           ports:
             - containerPort: 80
           env:
