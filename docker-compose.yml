@@ -18,6 +18,7 @@ services:
 
   webapp:
     build: .
+    image: rukevweubio/twotier-application-deployment-image
     container_name: php-webapp
     restart: always
     ports:

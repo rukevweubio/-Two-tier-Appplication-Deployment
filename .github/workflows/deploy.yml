@@ -30,15 +30,8 @@ jobs:
       - name: Build Docker image for webapp
         run: |
           docker compose build webapp
-          IMAGE_ID=$(docker images -q php-webapp)
-          if [ -z "$IMAGE_ID" ]; then
-            echo "No image built for webapp service!"
-            exit 1
-          fi
-          docker tag $IMAGE_ID $IMAGE_NAME:latest
-          echo " Tagged image as $IMAGE_NAME:latest"
           docker images | grep twotier
-
+          
       - name: Scan Docker image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
