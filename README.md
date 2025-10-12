@@ -97,6 +97,55 @@ volumes:
 - create  docker secret and docker username  on git action  secret
 -  commit  and push  code  for the gitation to be trigger
 -  build and test docker image  with gitaction  and deploy image to docker hub
+```
+name: Build, Scan, and Deploy Docker Image  update 
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: rukevweubio/twotier-application-deployment-image
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKER_PASSWORD }}
+
+jobs:
+  build-scan-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker image for webapp
+        run: |
+          docker compose build webapp
+          docker images | grep twotier
+          
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:latest
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Docker image to Docker Hub
+        if: success()
+        run: |
+          docker push $IMAGE_NAME:latest
+```
   
 ###Containerization
 Frontend Container:
@@ -110,4 +159,27 @@ $db = getenv('MYSQL_DATABASE') ?: 'myappdb';
 $user = getenv('MYSQL_USER') ?: 'root';
 $pass = getenv('MYSQL_PASSWORD') ?: 'rootpass';
 $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
+```
+
+### Kubernates cluster 
+- login into azure cloud
+- create azure kubernates cluster
+- login  with azure cli  using az login
+-  connect  the azure  account to login
+- create namespace  portainer and dev
+- deploy  portainer  on teh  portainer namespace
+- expose the ui of portainer  using  loadbalancer 
+ ```  
+az login
+az login --tenant <TENANT_ID_OR_DOMAIN>
+az account list --output table
+az account show --output table
+az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
+az account show
+az ad signed-in-user show
+az role assignment list --assignee $(az ad signed-in-user show --query objectId -o tsv) --output table
+az aks show --resource-group <RESOURCE_GROUP> --name <AKS_CLUSTER_NAME> --output table
+az aks show --resource-group <RESOURCE_GROUP> --name <AKS_CLUSTER_NAME> --output json
+az aks get-credentials --resource-group <RESOURCE_GROUP> --name <AKS_CLUSTER_NAME>
+az aks get-credentials --resource-group <RESOURCE_GROUP> --name <AKS_CLUSTER_NAME> --admin --overwrite-
 ```
