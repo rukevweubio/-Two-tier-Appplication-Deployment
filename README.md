@@ -1,355 +1,65 @@
+### Project Overview
+This project outlines the development and deployment of a simple two-tier web application using Apache and PHP for the frontend, and MySQL for the backend database. The application is containerized with Docker and orchestrated on Azure Kubernetes Service (AKS), Microsoft's managed Kubernetes platform. To automate the build and deployment process, GitHub Actions is utilized for Continuous Integration/Continuous Deployment (CI/CD), specifically to build the frontend Docker image and push it to Docker Hub. Portainer serves as a user-friendly graphical interface for managing Kubernetes resources and deploying the application to the AKS cluster.
+The project demonstrates key DevOps practices, including containerization, orchestration, and automation, making it suitable for scalable web applications. All resources are isolated in a dedicated Kubernetes namespace called dev for better organization and security. This setup ensures the frontend can securely connect to the MySQL backend, allowing for basic operations like data retrieval and manipulation through a simple PHP interface
 
-# Project Documentation: Deployment of a Two-Tier Application on Azure Kubernetes Service (AKS) Using Portainer
+### Key technologies involved:
+- Frontend: Apache HTTP Server with PHP for dynamic content.
+- Backend: MySQL database for data persistence.
+- Containerization: Docker for packaging the application.
+- Orchestration: AKS for managing containers at scale.
+- CI/CD: GitHub Actions for automated image builds.
+- Management Tool: Portainer for simplified cluster operations.
 
-## Introduction
+### Problem Statement
+Traditional web applications often face challenges in scalability, portability, and deployment consistency. Deploying a two-tier application (frontend and backend) manually on virtual machines or bare metal can lead to issues such as:
+- Inconsistent environments between development, testing, and production.
+- Manual scaling and management of resources, leading to downtime during updates.
+- Lack of automation in building and deploying code changes.
+- Security risks from exposed credentials and unisolated components.
+- Difficulty in managing database persistence in distributed systems.
+- This project addresses these by leveraging containerization and Kubernetes orchestration on AKS. Specifically, it solves the need for a reliable, automated deployment pipeline for a PHP-based web app with a MySQL backend, ensuring high availability, easy scaling, and secure configuration management.
+- 
+### Problem Overview
+The core problem revolves around efficiently deploying and managing a two-tier application in a cloud environment. Observations from similar setups include:
+- Development Overhead: Without containers, developers must replicate exact server configurations, leading to "it works on my machine" issues.
+- Deployment Complexity: Manual uploads to servers or clusters are error-prone and time-consuming.
+- CI/CD Gaps: Code changes require manual builds and pushes, delaying releases.
+- Resource Isolation: Mixing resources in a shared cluster can cause conflicts or security breaches.
+- Persistence and Connectivity: Ensuring the backend database remains stateful while the frontend statelessly connects to it is crucial.
+- Management Tools: Command-line tools like kubectl are powerful but intimidating for beginners; a GUI like Portainer simplifies this.
+- By using Docker for packaging, GitHub Actions for automation, AKS for orchestration, and Portainer for management, this project provides a streamlined solution. It focuses on a simple application (e.g., a PHP form interacting with MySQL) but scales to real-world scenarios like e-commerce or content management systems.
+![Data archetitural design]()
 
-This documentation outlines the deployment of a two-tier web application consisting of:
-- **Front-end**: An Apache HTTP Server hosting static or dynamic web content.
-- **Back-end**: A MySQL database for data storage and management.
+### Prerequisites and Setup
+Install Required Tools:
+- Azure CLI: Download from the official Azure website and install.
+- kubectl: Install via Azure CLI (az aks install-cli).
+- Docker: Install Desktop version for local testing.
+- Helm: For installing Portainer (curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash).
+- Git: For repository management.
+Create Azure Resources:
+- Log in to Azure: az login.
+- Create a resource group: az group create --name rg-aks-project --location eastus.
+- Create AKS cluster: az aks create --resource-group rg-aks-project --name aks-cluster --node-count 2 --enable-addons monitoring --generate-ssh-keys.
+- Get cluster credentials: az aks get-credentials --resource-group rg-aks-project --name aks-cluster.
 
-The deployment leverages Azure Kubernetes Service (AKS) for orchestrating the back-end, Docker for containerizing the front-end, Docker Hub for image storage, and Portainer for simplified management and deployment of Kubernetes resources on the AKS cluster.
 
-The architecture assumes the front-end connects to the back-end MySQL instance via a Kubernetes Service. This setup provides scalability, high availability, and ease of management in a cloud-native environment.
+Set Up GitHub Repository:
 
-**Key Technologies Used**:
-- Azure Kubernetes Service (AKS)
-- Kubernetes (for orchestration)
-- Docker (for containerization)
-- Docker Hub (for image registry)
-- Portainer (for Kubernetes management UI)
-- Apache HTTP Server (front-end)
-- MySQL (back-end)
-
-**Assumptions**:
-- You have an Azure subscription.
-- The front-end Apache application is configured to connect to the MySQL database (e.g., via environment variables or config files).
-- Basic knowledge of command-line tools like `az` (Azure CLI), `kubectl`, and `docker`.
-
-## Prerequisites
-
-Before starting, ensure the following:
-1. **Azure Account**: Active Azure subscription with permissions to create AKS clusters.
-2. **Tools Installed**:
-   - Azure CLI (`az`): Install from [Microsoft Docs](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
-   - kubectl: Install via Azure CLI or from [Kubernetes Docs](https://kubernetes.io/docs/tasks/tools/).
-   - Docker: Install from [Docker Docs](https://docs.docker.com/get-docker/).
-   - Git (optional, for cloning repositories).
-3. **Docker Hub Account**: Create a free account at [hub.docker.com](https://hub.docker.com).
-4. **Portainer**: Will be deployed on the cluster as part of the process.
-5. **Hardware/Software**:
-   - A machine with at least 4GB RAM for local Docker builds.
-   - Access to Azure Portal for monitoring.
-
-## Step-by-Step Implementation Process
-
-### Step 1: Set Up Azure Kubernetes Service (AKS) Cluster
-
-1. **Log in to Azure CLI**:
-   ```
-   az login
-   ```
-
-2. **Create a Resource Group** (if not existing):
-   ```
-   az group create --name myResourceGroup --location eastus
-   ```
-
-3. **Create AKS Cluster**:
-   Use the Azure CLI to provision an AKS cluster. This example creates a basic cluster with 2 nodes.
-   ```
-   az aks create --resource-group myResourceGroup --name myAKSCluster --node-count 2 --enable-addons monitoring 
-   ```
-
-4. **Get Cluster Credentials**:
-   Connect your local `kubectl` to the AKS cluster.
-   ```
-   az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
-   ```
-
-5. **Verify Cluster**:
-   ```
-   kubectl get nodes
-   ```
-   This should list the nodes in your cluster.
-
-### Step 2: Deploy the Back-End (MySQL) on AKS
-
-The back-end MySQL will be deployed as a StatefulSet in Kubernetes for persistent data storage. Use a PersistentVolumeClaim (PVC) for data persistence.
-
-1. **Create a Namespace** (optional, for organization):
-   ```
-   kubectl create namespace app-namespace
-   ```
-
-2. **Create MySQL Deployment YAML**:
-   Create a file named `mysql-deployment.yaml` with the following content:
-
-   ```yaml
-   apiVersion: apps/v1
-   kind: StatefulSet
-   metadata:
-     name: mysql
-     namespace: app-namespace
-   spec:
-     serviceName: mysql
-     replicas: 1
-     selector:
-       matchLabels:
-         app: mysql
-     template:
-       metadata:
-         labels:
-           app: mysql
-       spec:
-         containers:
-         - name: mysql
-           image: mysql:8.0
-           env:
-           - name: MYSQL_ROOT_PASSWORD
-             value: "your-root-password"  # Change to a secure password
-           - name: MYSQL_DATABASE
-             value: "your-database-name"
-           ports:
-           - containerPort: 3306
-           volumeMounts:
-           - name: mysql-persistent-storage
-             mountPath: /var/lib/mysql
-     volumeClaimTemplates:
-     - metadata:
-         name: mysql-persistent-storage
-       spec:
-         accessModes: [ "ReadWriteOnce" ]
-         resources:
-           requests:
-             storage: 10Gi  # Adjust size as needed
-   ---
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: mysql-service
-     namespace: app-namespace
-   spec:
-     selector:
-       app: mysql
-     ports:
-       - protocol: TCP
-         port: 3306
-         targetPort: 3306
-     type: ClusterIP  # Internal service
-   ```
-
-3. **Apply the YAML**:
-   ```
-   kubectl apply -f mysql-deployment.yaml
-   ```
-
-4. **Verify Deployment**:
-   ```
-   kubectl get pods -n app-namespace
-   kubectl get services -n app-namespace
-   ```
-   Wait for the MySQL pod to be in "Running" state.
-
-### Step 3: Build and Push Front-End (Apache) Docker Image
-
-Assume your front-end is a simple Apache server with custom web content (e.g., HTML/PHP files connecting to MySQL).
-
-1. **Create Dockerfile** for Front-End:
-   Create a file named `Dockerfile` in your project directory:
-
-   ```
-        dockerfile
-        FROM php:8.2-apache
-        WORKDIR /var/www/html
-        COPY . /var/www/html/
-        RUN docker-php-ext-install mysqli
-        EXPOSE 80
-   ```
-
-2. **Build the Docker Image**:
-   ```
-   docker build -t yourusername/frontend-app:latest .
-   ```
-
-3. **Log in to Docker Hub**:
-   ```
-   docker login
-   ```
-
-4. **Push to Docker Hub**:
-   ```
-   docker push yourusername/frontend-app:latest
-   ```
-
-### Step 4: Deploy Front-End on AKS Using Kubernetes
-
-Create a Deployment for the front-end that pulls the image from Docker Hub.
-
-1. **Create Front-End Deployment YAML**:
-   Create a file named `frontend-deployment.yaml`:
-
-   ```yaml
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: frontend
-     namespace: app-namespace
-   spec:
-     replicas: 2  # Scale as needed
-     selector:
-       matchLabels:
-         app: frontend
-     template:
-       metadata:
-         labels:
-           app: frontend
-       spec:
-         containers:
-         - name: frontend
-           image: yourusername/frontend-app:latest
-           ports:
-           - containerPort: 80
-           env:
-           - name: DB_HOST
-             value: "mysql-service"  
-           - name: DB_USER
-             value: "root"
-           - name: DB_PASSWORD
-             value: "your-root-password"
-           - name: DB_NAME
-             value: "your-database-name"
-   ---
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: frontend-service
-     namespace: app-namespace
-   spec:
-     selector:
-       app: frontend
-     ports:
-       - protocol: TCP
-         port: 80
-         targetPort: 80
-     type: LoadBalancer  
-   ```
-
-2. **Apply the YAML**:
-   ```
-   kubectl apply -f frontend-deployment.yaml
-   ```
-
-3. **Get External IP**:
-   ```
-   kubectl get services -n app-namespace
-   ```
-   Access the app via the LoadBalancer IP.
-
-### Step 5: Install and Use Portainer for Management and Deployment
-
-Portainer provides a web UI to manage Kubernetes resources, including deploying images.
-
-1. **Deploy Portainer on AKS**:
-   Create `portainer.yaml`:
-
-   ```yaml
-   apiVersion: v1
-   kind: Namespace
-   metadata:
-     name: portainer
-   ---
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-     name: portainer
-     namespace: portainer
-   spec:
-     replicas: 1
-     selector:
-       matchLabels:
-         app: portainer
-     template:
-       metadata:
-         labels:
-           app: portainer
-       spec:
-         containers:
-         - name: portainer
-           image: portainer/portainer-ce:latest
-           args:
-          
-           ports:
-           - containerPort: 9000
-           volumeMounts:
-           - mountPath: /data
-             name: portainer-data
-         volumes:
-         - name: portainer-data
-           emptyDir: {}
-   ---
-   apiVersion: v1
-   kind: Service
-   metadata:
-     name: portainer-service
-     namespace: portainer
-   spec:
-     selector:
-       app: portainer
-     ports:
-       - protocol: TCP
-         port: 9000
-         targetPort: 9000
-     type: LoadBalancer
-   ```
-
-   Apply:
-   ```
-   kubectl apply -f portainer.yaml
-   ```
-
-2. **Access Portainer**:
-   Get the service IP:
-   ```
-   kubectl get services -n portainer
-   ```
-   Open `http://<external-ip>:9000` in a browser. Log in with admin credentials.
-
-3. **Connect Portainer to AKS**:
-   In Portainer UI:
-   - Go to "Environments" > Add Environment > Kubernetes.
-   - Use the kubeconfig from Step 1 (or upload it).
-
-4. **Deploy/Manage Resources via Portainer**:
-   - For front-end deployment: Use Portainer's "Stacks" or "Applications" to deploy YAML files or pull images directly from Docker Hub.
-   - Monitor pods, services, and deployments.
-   - For the front-end image: In Portainer, go to "Images" > Pull from Docker Hub, then create a new Deployment using the pulled image.
-   - Manage back-end similarly by viewing/editing existing resources.
-
-## Testing and Verification
-
-1. **Test Back-End**: Exec into MySQL pod and verify database:
-   ```
-   kubectl exec -it mysql-0 -n app-namespace -- mysql -u root -p
-   ```
-
-2. **Test Front-End**: Curl or browse the front-end service IP to ensure it loads and connects to MySQL.
-
-3. **Scale and Monitor**: Use `kubectl scale` or Portainer to adjust replicas. Monitor via Azure Portal or `kubectl top`.
-
-## Troubleshooting
-
-- **Pod Crashes**: Check logs with `kubectl logs <pod-name> -n app-namespace`.
-- **Connection Issues**: Ensure environment variables match and services are correctly named.
-- **Portainer Access**: If LoadBalancer doesn't provision, use NodePort temporarily.
-- **Azure Costs**: Monitor resource usage to avoid unexpected bills; delete the cluster when not in use with `az aks delete`.
-
-## Cleanup
-
-To remove resources:
+- Create a new repo on GitHub with your PHP application code (e.g., index.php for frontend logic connecting to MySQL).
+- Add a Dockerfile for the frontend in the repo root:
+ ```
+textFROM php:8.2-apache
+RUN apt-get update && apt-get install -y libzip-dev unzip && docker-php-ext-install pdo_mysql zip
+COPY . /var/www/html/
+RUN chown -R www-data:www-data /var/www/html
+EXPOSE 80
+CMD ["apache2-foreground"]
 ```
-kubectl delete namespace app-namespace portainer
-az aks delete --resource-group myResourceGroup --name myAKSCluster --yes --no-wait
-az group delete --name myResourceGroup --yes --no-wait
-```
-
-This documentation provides a formal, step-by-step guide to replicate the project. Adjust passwords, names, and sizes for production use. For security, use Secrets for sensitive data instead of plain env vars.
+### Install Portainer on AKS:
+- Add Helm repo: helm repo add portainer https://portainer.github.io/k8s/.
+- Create namespace: kubectl create namespace portainer.
+- install the portainer agent  on teh cluster
+-  connect the  portainer agent service ip to the  portainer  ui 
+- Install Portainer: helm install portainer portainer/portainer --namespace portainer.
+- Expose Portainer: kubectl port-forward svc/portainer -n portainer 9000:9000 (access at http://localhost:9000).
