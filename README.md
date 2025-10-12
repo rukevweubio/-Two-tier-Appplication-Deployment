@@ -146,6 +146,7 @@ jobs:
         run: |
           docker push $IMAGE_NAME:latest
 ```
+![Gitaction workflow](https://github.com/rukevweubio/Gitops-Portainer-AzureAks/blob/main/picture/Screenshot%20(2599).png)
   
 ###Containerization
 Frontend Container:
