@@ -49,12 +49,40 @@ Set Up GitHub Repository:
 - Create a new repo on GitHub with your PHP application code (e.g., index.php for frontend logic connecting to MySQL).
 - Add a Dockerfile for the frontend in the repo root:
  ```
-textFROM php:8.2-apache
-RUN apt-get update && apt-get install -y libzip-dev unzip && docker-php-ext-install pdo_mysql zip
-COPY . /var/www/html/
-RUN chown -R www-data:www-data /var/www/html
-EXPOSE 80
-CMD ["apache2-foreground"]
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: webapp_db
+      MYSQL_USER: webuser
+      MYSQL_PASSWORD: webpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  webapp:
+    build: .
+    image: rukevweubio/twotier-application-deployment-image
+    container_name: php-webapp
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: webuser
+      MYSQL_PASSWORD: webpass
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:
 ```
 ### Install Portainer on AKS:
 - Add Helm repo: helm repo add portainer https://portainer.github.io/k8s/.
@@ -63,3 +91,10 @@ CMD ["apache2-foreground"]
 -  connect the  portainer agent service ip to the  portainer  ui 
 - Install Portainer: helm install portainer portainer/portainer --namespace portainer.
 - Expose Portainer: kubectl port-forward svc/portainer -n portainer 9000:9000 (access at http://localhost:9000).
+  
+### Build docker image  with gitaction 
+- create a gitaction  workflow file
+- create  docker secret and docker username  on git action  secret
+-  commit  and push  code  for the gitation to be trigger
+-  build and test docker image  with gitaction  and deploy image to docker hub
+-  
