@@ -97,4 +97,17 @@ volumes:
 - create  docker secret and docker username  on git action  secret
 -  commit  and push  code  for the gitation to be trigger
 -  build and test docker image  with gitaction  and deploy image to docker hub
--  
+  
+###Containerization
+Frontend Container:
+- Test locally: docker build -t frontend-app:latest . and docker run -p 8080:80 frontend-app:latest.
+- Ensure PHP code connects to MySQL using environment variables (e.g., via PDO):
+-  used the submit.php file to connect the  front end to backend  and test locally
+  
+```
+php$host = getenv('MYSQL_HOST') ?: 'localhost';
+$db = getenv('MYSQL_DATABASE') ?: 'myappdb';
+$user = getenv('MYSQL_USER') ?: 'root';
+$pass = getenv('MYSQL_PASSWORD') ?: 'rootpass';
+$pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
+```
