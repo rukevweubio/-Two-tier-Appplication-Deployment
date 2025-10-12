@@ -161,6 +161,9 @@ $user = getenv('MYSQL_USER') ?: 'root';
 $pass = getenv('MYSQL_PASSWORD') ?: 'rootpass';
 $pdo = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
 ```
+![mysql database](https://github.com/rukevweubio/Gitops-Portainer-AzureAks/blob/main/picture/Screenshot%20(2478).png)
+### Mysql database
+![mysql database](https://github.com/rukevweubio/Gitops-Portainer-AzureAks/blob/main/picture/Screenshot%20(2477).png)
 
 ### Kubernates cluster 
 - login into azure cloud
